@@ -1,47 +1,40 @@
 package main
 
 import (
-	"github.com/urfave/cli"
 	"os"
 	"log"
 	"fmt"
 	"io/ioutil"
-)
-
-var (
-	version = "0.0.0"
-	build   = "0"
+	"net/http"
+	"net/url"
 )
 
 func main() {
-	app := cli.NewApp()
-	app.Name = "test coverage plugin"
-	app.Usage = "test coverage plugin"
-	app.Action = run
-	app.Version = fmt.Sprintf("%s+%s", version, build)
-	app.Flags = []cli.Flag{
-		cli.StringFlag{
-			Name:   "file",
-			Usage:  "files for coverage upload",
-			EnvVar: "PLUGIN_FILES",
-		},
-	}
-
-	if err := app.Run(os.Args); err != nil {
-		log.Fatal(err)
-	}
-}
-
-func run(c *cli.Context) error {
-	file := c.String("file")
-	fmt.Printf("file: %s", file)
-	console, err := ioutil.ReadFile(file)
-
+	file := os.Getenv("PLUGIN_FILE")
+	repo := os.Getenv("PLUGIN_REPO")
+	host := os.Getenv("PLUGIN_HOST")
+	port := os.Getenv("PLUGIN_PORT")
+	outputReader, err := ioutil.ReadFile(file)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Printf("file content: %s", string(console))
-	// TODO
-	return err
+	output := fmt.Sprintf("%s", outputReader)
+
+	fmt.Printf("========= Reporting =========\n")
+	targetUrl := fmt.Sprintf("http://%s:%s/repos/%s", host, port, repo)
+
+	client := &http.Client{}
+	postValues := url.Values{}
+	postValues.Add("doc", output)
+	resp, err := client.PostForm(targetUrl, postValues)
+	fmt.Printf("======= Report finish =======")
+	defer resp.Body.Close()
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	if resp.StatusCode == 200 {
+		body, _ := ioutil.ReadAll(resp.Body)
+		fmt.Println(string(body))
+	}
 }
