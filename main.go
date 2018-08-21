@@ -28,13 +28,17 @@ func main() {
 	postValues := url.Values{}
 	postValues.Add("doc", output)
 	resp, err := client.PostForm(targetUrl, postValues)
-	fmt.Printf("======= Report finish =======")
-	defer resp.Body.Close()
+	fmt.Printf("======= Report finished =======")
+
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Fatal(err)
+		return
 	}
+
 	if resp.StatusCode == 200 {
 		body, _ := ioutil.ReadAll(resp.Body)
 		fmt.Println(string(body))
 	}
+
+	defer resp.Body.Close()
 }
